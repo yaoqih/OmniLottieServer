@@ -29,7 +29,7 @@
     }
   ],
   "config": {
-    "gpuTypeId": "NVIDIA RTX A4000",
+    "gpuTypeId": "Tesla T4",
     "gpuCount": 1,
     "env": [
       { "key": "ENABLE_DUMMY", "value": "true" },
