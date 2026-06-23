@@ -2,6 +2,7 @@ import base64
 import io
 import json
 import os
+from pathlib import Path
 import tempfile
 import threading
 import time
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field, model_validator
 SYSTEM_PROMPT = "You are a Lottie animation expert."
 DEFAULT_MODEL_PATH = os.environ.get("MODEL_PATH", "OmniLottie/OmniLottie")
 DEFAULT_PROCESSOR_PATH = os.environ.get("PROCESSOR_PATH", "Qwen/Qwen2.5-VL-3B-Instruct")
+DEFAULT_HF_CACHE_ROOT = os.environ.get("HF_HOME", "/runpod-volume/huggingface-cache")
 
 _MODEL = None
 _PROCESSOR = None
@@ -141,10 +143,49 @@ def _write_temp_bytes(b64_str: str, suffix: str) -> str:
     return path
 
 
+def resolve_cached_hf_path(repo_id: str, cache_root: Optional[str] = None) -> Optional[str]:
+    if not repo_id or "/" not in repo_id:
+        return None
+    hub_root = Path(cache_root or DEFAULT_HF_CACHE_ROOT)
+    if hub_root.name != "hub":
+        hub_root = hub_root / "hub"
+    model_dir = hub_root / f"models--{repo_id.replace('/', '--')}"
+    snapshots_dir = model_dir / "snapshots"
+    refs_dir = model_dir / "refs"
+    if not snapshots_dir.exists():
+        return None
+
+    ref_name = os.environ.get("MODEL_REVISION", "main")
+    ref_file = refs_dir / ref_name
+    if ref_file.exists():
+        snapshot_name = ref_file.read_text(encoding="utf-8").strip()
+        snapshot_path = snapshots_dir / snapshot_name
+        if snapshot_path.exists():
+            return str(snapshot_path)
+
+    snapshots = sorted([p for p in snapshots_dir.iterdir() if p.is_dir()], key=lambda p: p.name)
+    if snapshots:
+        return str(snapshots[-1])
+    return None
+
+
+def resolve_model_source(model_path: str) -> str:
+    if not model_path:
+        raise ValueError("model_path is required")
+    if os.path.exists(model_path):
+        return model_path
+    cached_path = resolve_cached_hf_path(model_path)
+    if cached_path:
+        return cached_path
+    return model_path
+
+
 def ensure_model_loaded(model_path: str, processor_path: str) -> Tuple[Any, Any, Any]:
     global _MODEL, _PROCESSOR, _DEVICE, _LOADED_KEY
+    resolved_model_path = resolve_model_source(model_path)
+    resolved_processor_path = resolve_model_source(processor_path)
     with _MODEL_LOCK:
-        if _LOADED_KEY == (model_path, processor_path) and _MODEL is not None:
+        if _LOADED_KEY == (resolved_model_path, resolved_processor_path) and _MODEL is not None:
             return _MODEL, _PROCESSOR, _DEVICE
 
         import torch
@@ -156,13 +197,13 @@ def ensure_model_loaded(model_path: str, processor_path: str) -> Tuple[Any, Any,
             "cuda:0" if torch.cuda.is_available() else "xpu:0" if hasattr(torch, "xpu") and torch.xpu.is_available() else "cpu"
         )
         model = LottieDecoder.from_pretrained(
-            model_path,
+            resolved_model_path,
             torch_dtype=torch.bfloat16 if hasattr(torch, "bfloat16") else None,
             trust_remote_code=True,
         )
         model = model.to(device).eval()
         processor = AutoProcessor.from_pretrained(
-            processor_path,
+            resolved_processor_path,
             padding_side="left",
             trust_remote_code=True,
         )
@@ -170,7 +211,7 @@ def ensure_model_loaded(model_path: str, processor_path: str) -> Tuple[Any, Any,
         _MODEL = model
         _PROCESSOR = processor
         _DEVICE = device
-        _LOADED_KEY = (model_path, processor_path)
+        _LOADED_KEY = (resolved_model_path, resolved_processor_path)
         return _MODEL, _PROCESSOR, _DEVICE
 
 

@@ -33,8 +33,8 @@
     "gpuCount": 1,
     "env": [
       { "key": "ENABLE_DUMMY", "value": "true" },
-      { "key": "MODEL_PATH", "value": "/runpod-volume/OmniLottie" },
-      { "key": "PROCESSOR_PATH", "value": "/runpod-volume/Qwen2.5-VL-3B-Instruct" }
+      { "key": "MODEL_PATH", "value": "OmniLottie/OmniLottie" },
+      { "key": "PROCESSOR_PATH", "value": "Qwen/Qwen2.5-VL-3B-Instruct" }
     ],
     "allowedCudaVersions": ["12.1", "12.2", "12.3", "12.4", "12.5", "12.6", "12.7", "12.8", "12.9", "13.0"]
   }

@@ -1,11 +1,18 @@
 import json
 import os
 import sys
+import tempfile
 import types
 import unittest
 from unittest import mock
 
-from service import PredictRequest, build_dummy_response, run_generation
+from service import (
+    PredictRequest,
+    build_dummy_response,
+    resolve_cached_hf_path,
+    resolve_model_source,
+    run_generation,
+)
 from runpod_client import _parse_business_output
 
 
@@ -38,6 +45,29 @@ class ServiceTests(unittest.TestCase):
         result = build_dummy_response(req.task_type, req, 12)
         parsed = json.loads(result["primary_lottie_json"])
         self.assertEqual(parsed["nm"], result["primary_lottie"]["nm"])
+
+    def test_resolve_model_source_prefers_existing_local_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.assertEqual(resolve_model_source(tmpdir), tmpdir)
+
+    def test_resolve_cached_hf_path_uses_runpod_cache_layout(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            cache_root = os.path.join(tmpdir, "huggingface-cache", "hub")
+            model_root = os.path.join(
+                cache_root,
+                "models--OmniLottie--OmniLottie",
+            )
+            snapshot_dir = os.path.join(model_root, "snapshots", "abc123")
+            refs_dir = os.path.join(model_root, "refs")
+            os.makedirs(snapshot_dir, exist_ok=True)
+            os.makedirs(refs_dir, exist_ok=True)
+            with open(os.path.join(refs_dir, "main"), "w", encoding="utf-8") as f:
+                f.write("abc123")
+            resolved = resolve_cached_hf_path(
+                "OmniLottie/OmniLottie",
+                cache_root=cache_root,
+            )
+            self.assertEqual(resolved, snapshot_dir)
 
 
 class HandlerTests(unittest.TestCase):

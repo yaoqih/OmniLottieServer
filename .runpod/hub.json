@@ -19,8 +19,8 @@
       {
         "name": "Default",
         "defaults": {
-          "MODEL_PATH": "/runpod-volume/OmniLottie",
-          "PROCESSOR_PATH": "/runpod-volume/Qwen2.5-VL-3B-Instruct",
+          "MODEL_PATH": "OmniLottie/OmniLottie",
+          "PROCESSOR_PATH": "Qwen/Qwen2.5-VL-3B-Instruct",
           "ENABLE_DUMMY": "true"
         }
       }
@@ -29,19 +29,19 @@
       {
         "key": "MODEL_PATH",
         "input": {
-          "name": "OmniLottie model path",
+          "name": "OmniLottie model id or path",
           "type": "string",
-          "description": "Local path or HuggingFace repo id for the OmniLottie HF model",
-          "default": "/runpod-volume/OmniLottie"
+          "description": "HuggingFace repo id for RunPod cached models, or a local path if you still use a volume",
+          "default": "OmniLottie/OmniLottie"
         }
       },
       {
         "key": "PROCESSOR_PATH",
         "input": {
-          "name": "Processor path",
+          "name": "Processor model id or path",
           "type": "string",
-          "description": "Local path or HuggingFace repo id for the Qwen processor",
-          "default": "/runpod-volume/Qwen2.5-VL-3B-Instruct"
+          "description": "HuggingFace repo id for the Qwen processor, or a local path if you still use a volume",
+          "default": "Qwen/Qwen2.5-VL-3B-Instruct"
         }
       },
       {

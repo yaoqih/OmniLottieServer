@@ -171,6 +171,26 @@ MODEL_PATH=/PATH/TO/OmniLottie python app_hf.py
 MODEL_PATH=OmniLottie/OmniLottie python app_hf.py
 ```
 
+### RunPod Serverless
+
+For RunPod Serverless, prefer cached models over a mounted network volume.
+
+Recommended endpoint setup:
+
+- Cached model: `OmniLottie/OmniLottie`
+- `MODEL_PATH=OmniLottie/OmniLottie`
+- `PROCESSOR_PATH=Qwen/Qwen2.5-VL-3B-Instruct`
+- `ENABLE_DUMMY=true` for the first contract/API validation
+- Switch to `ENABLE_DUMMY=false` only after the dummy tests pass
+
+The server wrapper in this repository resolves model sources in this order:
+
+1. Existing local filesystem path
+2. RunPod Hugging Face cache layout
+3. Raw Hugging Face repo id
+
+So the same config works for both cached-model deployment and local fallback.
+
 ### Using Original Format
 
 If you have the original `pytorch_model.bin` format, use `inference.py` and `app.py`:
@@ -494,4 +514,3 @@ We thank the following projects and resources for their valuable contributions:
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=OpenVGLab/OmniLottie&type=Date)](https://www.star-history.com/#OpenVGLab/OmniLottie&Date)
-
